@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SME Security Scanner</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Free passive security check</p>
+    <h1>How exposed is your business domain?</h1>
+    <p class="lead">Enter your domain for a plain-English assessment of DNS, SSL/TLS, web headers, email spoofing protection
+      (SPF, DKIM, DMARC), DNSSEC, subdomains and exposed services, with a PDF report you can hand to your IT provider.</p>
+    <form id="form" autocomplete="off">
+      <div class="row">
+        <input id="domain" name="domain" type="text" placeholder="example.co.ke" required spellcheck="false" aria-label="Domain">
+        <button id="go" type="submit">Scan domain</button>
+      </div>
+      <details class="adv">
+        <summary>Advanced: open-port check</summary>
+        <label class="chk"><input type="checkbox" id="ports"> Also test common risky ports (databases, RDP, FTP, SMB)</label>
+        <label class="chk"><input type="checkbox" id="own"> I own this domain or am authorised to test it</label>
+        <p class="hint">This makes a single TCP connection per port, with no exploits or passwords. Only enable it for systems you are allowed to test.</p>
+      </details>
+    </form>
+    <p id="err" class="error" role="alert" hidden></p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="loading" hidden>
+    <div class="spinner"></div>
+    <p>Scanning. This usually takes 15 to 40 seconds while we query DNS, certificate logs and your website.</p>
+  </section>
+
+  <section id="results" hidden>
+    <div class="summary">
+      <div id="grade" class="grade">-</div>
+      <div class="summary-text">
+        <h2 id="r-domain"></h2>
+        <p id="r-score"></p>
+        <div id="counts" class="counts"></div>
+        <a id="pdf" class="btn" href="#">Download PDF report</a>
+      </div>
+    </div>
+    <div id="filters" class="filters"></div>
+    <div id="findings"></div>
+    <details id="subs-wrap" class="panel"><summary>Subdomains seen in certificate logs (<span id="subs-n">0</span>)</summary><ul id="subs"></ul></details>
+    <details id="tech-wrap" class="panel"><summary>Detected technology</summary><ul id="tech"></ul></details>
+  </section>
+
+  <section class="about">
+    <h3>What this does and doesn't do</h3>
+    <p>Passive means public DNS, public certificate-transparency logs, a normal TLS handshake and ordinary page requests, with no exploitation
+      and no password guessing. It focuses on misconfiguration and exposed services, common root causes of incidents for small organisations.
+      It is not a penetration test or a compliance audit.</p>
+  </section>
+</main>
+<footer class="wrap foot">Automated results can contain false positives. Review with your IT provider.</footer>
+<script src="/static/app.js"></script>
+</body>
+</html>
