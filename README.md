@@ -16,9 +16,8 @@ real incidents: misconfiguration, exposed services and weak access controls.
 
 ## Quick start
 
-You need an internet connection and **Python 3.10 or newer** ([download Python](https://www.python.org/downloads/); on Windows, tick *"Add Python to PATH"* during install).
 
-**1. Download the project.** Click the green **Code** button on this page, then **Download ZIP**, and unzip it. (If you use Git: `git clone` the repository instead.)
+**1. Download the project.** 
 
 **2. Open a terminal in the project folder.**
 - **Windows:** open the folder in File Explorer, click the address bar, type `cmd` and press Enter.
