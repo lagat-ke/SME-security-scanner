@@ -1,70 +1,222 @@
 # SME Security Scanner
 
-A web app where a business enters its domain (e.g. `example.co.ke`) and gets a **passive** security assessment
-with a professional PDF report. Built for small and medium businesses in Kenya, focused on the everyday weaknesses
-that cause incidents: misconfiguration, exposed services and weak access controls.
+**A free, plain-English security check for your business domain, which you run on your own computer.**
 
-## What it checks
+Enter your domain (for example `example.com`) and get a security score, a list of what to fix, and a PDF report you can
+hand to your IT provider. There is no account to create and nothing is attacked: the scan only looks at information your
+domain already makes public.
 
-| Area | Checks |
-|---|---|
-| DNS | resolution, nameserver redundancy, CAA |
-| DNSSEC | DNSKEY + parent DS present |
-| SSL/TLS | trusted chain, hostname match, key size, signature hash, TLS 1.0/1.1 enabled, TLS 1.3 support |
-| Certificate expiry | critical (expired), high (<=14d), medium (<=30d) |
-| HTTP headers | HSTS, CSP, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, clickjacking, HTTP->HTTPS redirect, cookie flags, version disclosure |
-| Email | SPF (policy, multiple records, 10-lookup limit), DKIM (common selectors), DMARC (policy, rua, pct) |
-| Subdomains | from public Certificate Transparency logs (crt.sh); sensitive names, dangling CNAMEs (takeover risk) |
-| Exposed services | passive hostname review; **optional** TCP-connect check of 13 risky ports (RDP, SMB, databases, Telnet, FTP...) |
-| Technology stack | server, CMS, frameworks, CDN/WAF, analytics from headers, cookies and page markup |
-| Security configuration | `security.txt` |
-| Privacy (preview) | privacy-notice link on the homepage (automated hint only, not a compliance finding) |
+Built for small and medium businesses in Kenya, and useful anywhere. It focuses on the everyday weaknesses that cause
+real incidents: misconfiguration, exposed services and weak access controls.
 
-Output: a 0-100 score, an A-F grade, findings grouped by severity with plain-English fixes, and a PDF report
-(executive summary, priority actions, detailed findings, technology and subdomain appendices, methodology).
+> **Hosted version:** not available yet. For now you run it yourself (about 5 minutes, steps below).
+> Click **Watch** on this repository (choose *Custom > Releases*, or *All activity*) to be notified if a hosted version is added.
 
-## "Passive" and safety design
+---
 
-- Only public DNS, public CT logs, one normal TLS handshake and ordinary GET requests. No exploitation, brute-forcing or login attempts.
-- The port check is **off by default** and requires the user to tick a box confirming they are authorised to test the domain.
-- SSRF guard: every hostname (including each redirect hop) must resolve to a public IP before the server connects.
-- Rate limit (10 scans/hour/client), input validation, strict CSP and security headers on the app itself, results kept in memory for 1 hour.
-- Remote content is XML-escaped before it goes into the PDF.
+## Quick start
 
-## Run locally
+You need an internet connection and **Python 3.10 or newer** ([download Python](https://www.python.org/downloads/); on Windows, tick *"Add Python to PATH"* during install).
 
-```bash
-python -m venv .venv && source .venv/bin/activate
+**1. Download the project.** Click the green **Code** button on this page, then **Download ZIP**, and unzip it. (If you use Git: `git clone` the repository instead.)
+
+**2. Open a terminal in the project folder.**
+- **Windows:** open the folder in File Explorer, click the address bar, type `cmd` and press Enter.
+- **Mac:** right-click the folder and choose *New Terminal at Folder*.
+- **Linux:** open a terminal and `cd` into the folder.
+
+**3. Install and start it.**
+
+Windows:
+```
+python -m venv .venv
+.venv\Scripts\activate
 pip install -r requirements.txt
-python app.py            # http://127.0.0.1:5000
-pytest -q                # 22 tests, no network needed
+python app.py
 ```
 
-## Hosting (important)
+Mac / Linux:
+```
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python3 app.py
+```
 
-**GitHub hosts the code, but GitHub Pages only serves static files and cannot run this Flask backend.**
-Deploy the repo to any free Python/Docker host, such as Render, Fly.io, Railway, or a Hugging Face Space (Docker).
-A `Dockerfile` is included:
+**4. Open the scanner** in your browser at **http://127.0.0.1:5000**
+
+**5. Enter your domain** (such as `example.com`, without `https://` or page paths) and click **Scan domain**. A scan usually takes under a minute.
+
+**6. Click "Download PDF report"** to save the report.
+
+To stop the scanner, go back to the terminal and press `Ctrl + C`. Next time, you only need to repeat steps 2, then the *activate* line and the *python app.py* line from step 3.
+
+<details>
+<summary>Prefer Docker?</summary>
+
+```
+docker build -t sme-scanner .
+docker run -p 8000:8000 sme-scanner
+```
+Then open http://localhost:8000
+</details>
+
+### If something goes wrong
+
+| Problem | Try this |
+|---|---|
+| `python` is not recognised | Reinstall Python and tick *Add Python to PATH*, or use `py` (Windows) or `python3` (Mac/Linux) |
+| `pip install` fails | Update pip: `python -m pip install --upgrade pip`, then retry |
+| Page won't open | Make sure the terminal still shows the app running, and use exactly `http://127.0.0.1:5000` |
+| Subdomain list is empty or says unavailable | The free certificate-log service (crt.sh) was busy. Wait a minute and scan again |
+| Every domain shows "does not exist" | Check your internet connection, VPN or firewall. The scanner needs to look up public DNS |
+| Report link says "expired" | Reports are kept in memory for about an hour and are lost when you stop the app. Scan again and download the PDF straight away |
+
+---
+
+## What you get
+
+- A **score out of 100** and a **grade from A to F**
+- Findings sorted by severity, each with a **plain-English explanation and a suggested fix**
+- A **PDF report** with an executive summary, a short list of priority actions, full details, and appendices listing the technology and subdomains found
+
+### What the severity labels mean
+
+| Label | Meaning | What to do |
+|---|---|---|
+| **Critical** | Serious and urgent, such as an expired certificate or an open remote-access port | Fix immediately |
+| **High** | A real weakness attackers commonly use | Fix this week |
+| **Medium** | Worth fixing; makes you noticeably safer | Plan it in |
+| **Low** | Good-practice improvement | Fix when convenient |
+| **Info** | Something to be aware of or check; not necessarily a problem | Read and decide |
+| **Pass** | You're doing this right | Nothing |
+
+### What it checks
+
+| Area | In plain terms |
+|---|---|
+| **DNS** | Is your domain set up reliably, and can you control which companies may issue certificates for it (CAA)? |
+| **DNSSEC** | Is your domain protected against forged DNS answers? |
+| **SSL/TLS** | Is your website's padlock valid, strong and up to date? Are outdated, weak protocols switched off? |
+| **Certificate expiry** | How long until your certificate expires? |
+| **HTTP headers** | Does your website tell browsers to apply protections (HSTS, CSP, clickjacking, cookie flags)? |
+| **Email (SPF, DKIM, DMARC)** | Can someone send fake email pretending to be you? |
+| **Subdomains** | Which hostnames of yours are publicly visible, and are any forgotten, test or admin systems? Are any left pointing at services you no longer own (a takeover risk)? |
+| **Exposed services** | Are risky services such as remote desktop, databases or FTP reachable from the internet? *(Optional port check, see below.)* |
+| **Technology stack** | Which website platform, server and CDN are you running? |
+| **Security contact** | Do you publish a `security.txt` so researchers can report problems to you? |
+| **Privacy (preview)** | Is a privacy-notice link visible on your homepage? |
+
+## The optional port check
+
+By default the scan is entirely passive. If you tick **Advanced: open-port check**, the scanner also makes a single
+connection attempt to 13 well-known ports (such as remote desktop, databases and FTP) to see whether they are open to the internet.
+It sends no exploits, no passwords and no data.
+
+**Only use it on domains you own or have written permission to test.** You must tick a box confirming this before it will run.
+Because you run the tool yourself, these connections come from **your** computer and internet connection.
+
+If the site is behind a CDN or managed platform (Cloudflare, Shopify and similar), the result describes their servers, not yours,
+and the report says so.
+
+## Is it safe to scan a domain?
+
+Yes. "Passive" means the scanner only uses:
+
+- public DNS records,
+- public certificate-transparency logs (the open record of every certificate ever issued for a domain),
+- a normal secure connection to the website, like a browser makes, and
+- ordinary page requests.
+
+It never guesses passwords, tries to break in, or tests for exploitable bugs. You can run the default scan on any domain,
+but please only use the port check on systems you're authorised to test.
+
+## Your privacy
+
+- The scanner runs **on your own computer**. There is no account, and nothing is sent to the project maintainer.
+- To do its job it contacts only public services: DNS resolvers (Cloudflare and Google), the crt.sh certificate-log service, and the domain you are scanning.
+- Results are held in memory while the app is running (up to an hour) and are not written to a database. The PDF is saved only where *you* save it.
+- A limit of **10 scans per hour** applies, to prevent accidental overload.
+
+## Limits you should know about
+
+This tool is a useful first check, **not** a full security audit.
+
+- It can't see inside your network, applications, cloud accounts, laptops or phones.
+- It can't tell whether your staff use strong passwords or multi-factor authentication.
+- **DKIM** keys can have any name, so the scanner tries common ones. "Not found" is a hint to check, not proof you have no DKIM.
+- Some findings may not apply to you. If your site is hosted by a platform like Shopify or Wix, the platform controls many settings and the report notes this.
+- The privacy check is an automated hint only. It does **not** assess compliance with Kenya's Data Protection Act, 2019. For that, see guidance from the **Office of the Data Protection Commissioner (ODPC)**.
+- Automated tools produce occasional false positives. Review findings with your IT provider before acting.
+
+A good score is not a guarantee of security, and it isn't a substitute for a penetration test or a compliance audit.
+
+## Frequently asked questions
+
+**Do I need to be technical?** You need to be comfortable copying a few commands into a terminal. After that, every finding says what it means and how to fix it. Send the PDF to your web or IT provider if you're not sure how to apply a fix.
+
+**My domain says "does not exist" or isn't graded.** Check the spelling and that the domain is registered and active. A domain that doesn't resolve can't be assessed.
+
+**Why is my score lower than I expected?** One or two serious findings (Critical/High) weigh heavily. Many small Low items cost very little, so work from the top of the list down.
+
+**I fixed something but the report still shows it.** DNS changes can take minutes to hours to spread. Wait, then scan again.
+
+**Can I scan a domain that isn't mine?** The passive scan only uses public information. The port check needs your authorisation to test the domain.
+
+**Does it work for non-Kenyan domains?** Yes, any public domain. The privacy and guidance notes reference Kenyan law and bodies.
+
+**Will there be a hosted version?** Possibly. Watch this repository to hear about it.
+
+## Found a bug or want a feature?
+
+Please open an **Issue** on this repository. If a finding looks wrong, include the domain (if you're happy to share it), what the report said, and what you expected. That makes it much easier to fix.
+
+If you believe you've found a security problem in the scanner itself, please report it privately to the maintainer rather than posting it publicly.
+
+---
+
+<details>
+<summary><strong>For developers</strong></summary>
+
+### Tests
 
 ```bash
-docker build -t sme-scanner . && docker run -p 8000:8000 sme-scanner
+pip install pytest
+pytest -q        # unit tests with mocked network responses; no internet needed
 ```
 
-Notes for production:
-- Hosts must allow **outbound DNS, HTTPS (443) and, for the optional port check, arbitrary TCP**. Some free tiers restrict this.
-- Behind a proxy, `X-Forwarded-For` is used for rate limiting; make sure your proxy sets it and strips client-supplied values.
-- Results and rate-limit state are in memory, so run a single worker group (or add Redis) if you scale out.
-- Add a short terms/privacy page: the app processes domain names submitted by users.
+### Hosting your own public instance
 
-## Roadmap ideas
+GitHub Pages serves static files only and **cannot run this Flask backend**. To offer a hosted version, deploy to any host that
+runs Python or Docker, such as Render, Fly.io, Railway or a Hugging Face Space (Docker). The included `Dockerfile` uses gunicorn.
 
-- ODPC / Data Protection Act self-assessment questionnaire alongside the technical scan (registration, privacy notice, DPO, breach process)
+- The host must allow **outbound DNS and HTTPS (443)**, and arbitrary outbound TCP if you want the optional port check. Some free tiers restrict this.
+- Behind a proxy, rate limiting uses `X-Forwarded-For`. Make sure your proxy sets it and strips any client-supplied value.
+- Results and rate-limit counters are held in memory. If you run more than one process or instance, add a shared store such as Redis.
+- Add terms and a privacy page of your own, since a public instance processes domain names submitted by users, and consider running the port check only for verified domain owners.
+
+### Project layout
+
+| Path | Purpose |
+|---|---|
+| `app.py` | Flask app, API routes, rate limiting, security headers |
+| `scanner/` | One module per check area (`dns_checks`, `tls_check`, `web_checks`, `email_auth`, `subdomains`, `exposed`) plus `scan.py` (orchestration) and `common.py` (scoring, SSRF guard) |
+| `report.py` | PDF generation (ReportLab) |
+| `static/` | Web interface |
+| `tests/` | Unit tests |
+
+### Safety design
+
+- SSRF guard: every hostname, including each redirect hop, must resolve to a public IP before the server connects.
+- The port check is opt-in and requires an ownership confirmation.
+- Strict Content-Security-Policy and security headers on the app itself; all scanned text is escaped before it goes into the PDF.
+
+### Roadmap ideas
+
+- ODPC / Data Protection Act self-assessment questionnaire alongside the technical scan
 - Scheduled re-scans with email alerts for certificate expiry and DMARC changes
-- Cloud misconfiguration checks (open S3/Azure/GCS buckets named after the domain)
-- Swahili report option; branded white-label reports for IT providers
+- Cloud misconfiguration checks (open storage buckets named after the domain)
+- Swahili report option and white-label reports for IT providers
 - Compare-over-time view and CSV export
 
-## Limitations
-
-Passive checks cannot see inside your network, applications, cloud accounts or devices. DKIM selectors cannot be enumerated,
-so "not found" is a hint. This is not a penetration test or a compliance audit.
+</details>
