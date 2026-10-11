@@ -173,50 +173,7 @@ Please open an **Issue** on this repository. If a finding looks wrong, include t
 
 If you believe you've found a security problem in the scanner itself, please report it privately to the maintainer rather than posting it publicly.
 
----
 
-<details>
-<summary><strong>For developers</strong></summary>
-
-### Tests
-
-```bash
-pip install pytest
-pytest -q        # unit tests with mocked network responses; no internet needed
-```
-
-### Hosting your own public instance
-
-GitHub Pages serves static files only and **cannot run this Flask backend**. To offer a hosted version, deploy to any host that
-runs Python or Docker, such as Render, Fly.io, Railway or a Hugging Face Space (Docker). The included `Dockerfile` uses gunicorn.
-
-- The host must allow **outbound DNS and HTTPS (443)**, and arbitrary outbound TCP if you want the optional port check. Some free tiers restrict this.
-- Behind a proxy, rate limiting uses `X-Forwarded-For`. Make sure your proxy sets it and strips any client-supplied value.
-- Results and rate-limit counters are held in memory. If you run more than one process or instance, add a shared store such as Redis.
-- Add terms and a privacy page of your own, since a public instance processes domain names submitted by users, and consider running the port check only for verified domain owners.
-
-### Project layout
-
-| Path | Purpose |
-|---|---|
-| `app.py` | Flask app, API routes, rate limiting, security headers |
-| `scanner/` | One module per check area (`dns_checks`, `tls_check`, `web_checks`, `email_auth`, `subdomains`, `exposed`) plus `scan.py` (orchestration) and `common.py` (scoring, SSRF guard) |
-| `report.py` | PDF generation (ReportLab) |
-| `static/` | Web interface |
-| `tests/` | Unit tests |
-
-### Safety design
-
-- SSRF guard: every hostname, including each redirect hop, must resolve to a public IP before the server connects.
-- The port check is opt-in and requires an ownership confirmation.
-- Strict Content-Security-Policy and security headers on the app itself; all scanned text is escaped before it goes into the PDF.
-
-### Roadmap ideas
-
-- ODPC / Data Protection Act self-assessment questionnaire alongside the technical scan
-- Scheduled re-scans with email alerts for certificate expiry and DMARC changes
-- Cloud misconfiguration checks (open storage buckets named after the domain)
-- Swahili report option and white-label reports for IT providers
 - Compare-over-time view and CSV export
 
 </details>
