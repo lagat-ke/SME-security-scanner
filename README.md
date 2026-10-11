@@ -173,7 +173,3 @@ Please open an **Issue** on this repository. If a finding looks wrong, include t
 
 If you believe you've found a security problem in the scanner itself, please report it privately to the maintainer rather than posting it publicly.
 
-
-- Compare-over-time view and CSV export
-
-</details>
